@@ -2,64 +2,52 @@
 
 
 InterruptIn center(JOYSTICK_CENTER);
+
 LowPowerTicker lpt;
+
 DigitalOut led1(LED1);
 
-volatile bool pressed = false;
 volatile int sleepTime = 0;
-volatile bool readyToAlarm = true;
-void turnOnLed() {
-    led1 = 1;
-}
 
-void turnOffLed() {
-    led1 = 0;
-}
+void centerPressed();
+void handlerTimeOut();
+void init();
+void butStart();
 
-void center_pressed() {
-    sleepTime++;
-    pressed = true;
-}
-
-void initInter() {
-    center.rise(&center_pressed);   
+void init() {
+    center.rise(&centerPressed);   
     center.mode(PullDown);
+    sleepTime = 0;
+
 }
 
-void alarmOn() {
-    turnOnLed();
-    sleepTime = 0;
+void butStart() {
+    led1 = 1;
     lpt.detach();
-    readyToAlarm = true;
     center.enable_irq();
 }
 
-
-void prepareAlarm() {
-    initInter();
-    ThisThread::sleep_for(5000);
-    while(pressed || sleepTime == 0) {
-        pressed = false;
-        ThisThread::sleep_for(2000);
-    }
+void handlerTimeOut() {
+    led1 = 0;
     center.disable_irq();
-    turnOffLed();
+    lpt.attach(&butStart, sleepTime);
+    sleepTime = 0;
 
-    printf("sleep: %d s\n\r", sleepTime); 
-    // Deep sleep for 1 second
-    printf("Deep sleep allowed: %i\r\n", sleep_manager_can_deep_sleep());
-    lpt.attach(&alarmOn, sleepTime); 
-    sleep();
+}
+
+void centerPressed() {
+    sleepTime++;
+    lpt.attach(&handlerTimeOut,1);
 }
 
 // main() runs in its own thread in the OS
 int main()
 {
+    init();
+    ledOn();
   while(true) {
-      if(readyToAlarm) {
-          readyToAlarm = false;
-          prepareAlarm();
-      }
+    sleep();
+    
   }
 
 }
