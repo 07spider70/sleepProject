@@ -8,7 +8,7 @@ LowPowerTicker lpt;
 DigitalOut led1(LED1);
 
 volatile int sleepTime = 0;
-
+volatile bool canSleep = false;
 void centerPressed();
 void handlerTimeOut();
 void init();
@@ -23,6 +23,7 @@ void init() {
 
 void butStart() {
     led1 = 1;
+    canSleep = false;
     lpt.detach();
     center.enable_irq();
 }
@@ -32,6 +33,7 @@ void handlerTimeOut() {
     center.disable_irq();
     lpt.attach(&butStart, sleepTime);
     sleepTime = 0;
+    canSleep = true;
 
 }
 
@@ -44,9 +46,11 @@ void centerPressed() {
 int main()
 {
     init();
-    ledOn();
+    butStart();
   while(true) {
-    sleep();
+    if (canSleep) {
+            sleep();
+    }
     
   }
 
